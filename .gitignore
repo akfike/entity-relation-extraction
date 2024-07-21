@@ -1,0 +1,6 @@
+venv
+.env
+jsons
+ICPSR_*
+datasets_*
+skipped_files*
