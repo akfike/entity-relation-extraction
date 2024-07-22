@@ -16,19 +16,28 @@ client = OpenAI(
 )
 
 # Read the CSV file
-csv_file = 'ICPSR_DataDictionary_RawData_NIBRS-Incident-Level-2019.csv'
+csv_file = 'nsduh_2022_codebook.csv'
 df = pd.read_csv(csv_file)
 
 df['Answer_meaning'] = df['Answer_meaning'].fillna('')
+df['Long_Description'] = df['Long_Description'].fillna('')
 
 # Concatenate 'Short_Description' and 'Answer_meaning' for each unique 'Question_Code'
 df_grouped = df.groupby('Question_Code').agg({
     'Short_Description': 'first',
+    'Long_Description': 'first',
     'Answer_meaning': lambda x: ' '.join(x)
 }).reset_index()
 
-df_grouped['long_description'] = df_grouped['Short_Description'] + ' ' + df_grouped['Answer_meaning']
+df_grouped['long_description'] = df_grouped['Short_Description'] + ' ' + df_grouped['Answer_meaning'] + ' ' + df_grouped['Long_Description']
 
+# Load the list of question codes from the extracted texts file
+extracted_texts_file = 'extracted_texts.txt'
+if os.path.exists(extracted_texts_file):
+    with open(extracted_texts_file, 'r') as file:
+        existing_question_codes = set(file.read().splitlines())
+else:
+    existing_question_codes = set()
 
 # Define the base prompt
 base_prompt = """
@@ -127,16 +136,21 @@ def create_completion_with_retry(client, prompt, token, max_retries=50, delay=2)
 results = []
 
 for index, row in df_grouped.iterrows():
-    long_description = row['long_description']
     question_code = row['Question_Code']
+    
+    # Check if the question code exists in the extracted texts
+    if question_code in existing_question_codes:
+        print(f"Skipping Question_Code {question_code} as it already exists in {extracted_texts_file}")
+        continue
+    else:
+        print(f"Processing Question_Code {question_code} as it does not exist in {extracted_texts_file}")
+
+    long_description = row['long_description']
     
     # Create the complete prompt for each long description and Question_Code
     full_prompt = base_prompt % (long_description, question_code)
     
-    print("FuLL PROMPT: ")
-    print(full_prompt)
     token_count = count_tokens(full_prompt)
-    print(token_count)
     if token_count > 4096:  # GPT-4o token limit
         print(f"Prompt too long for Question_Code {question_code}. Token count: {token_count}")
         continue
@@ -145,7 +159,6 @@ for index, row in df_grouped.iterrows():
     
     # Get the generated JSON
     json_output = response.choices[0].message.content
-    print(json_output)
     
     # Save the JSON to a file
     file_name = f"jsons/{index}_{question_code}.json"
@@ -154,6 +167,10 @@ for index, row in df_grouped.iterrows():
     
     # Append to results
     results.append(json_output)
+    
+    # Save the processed question code to the extracted texts file
+    with open(extracted_texts_file, 'a') as file:
+        file.write(f"{question_code}\n")
 
 # Print the results
 for result in results:

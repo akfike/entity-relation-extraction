@@ -31,8 +31,8 @@ def process_json_folder(folder_path, dataset_name, year):
     return relationships_data
 
 # Process NIBRS_jsonblock folder
-nibrs_folder_path = 'jsons'
-nibrs_relationships_data = process_json_folder(nibrs_folder_path, 'NIBRS', 2019)
+nibrs_folder_path = 'fixed_jsons'
+nibrs_relationships_data = process_json_folder(nibrs_folder_path, 'NSDUH', 2022)
 
 # Create a DataFrame from the relationships data
 relationships_df = pd.DataFrame(nibrs_relationships_data)

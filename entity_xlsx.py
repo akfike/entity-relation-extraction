@@ -16,6 +16,7 @@ def process_json_folder(folder_path, dataset_name, year):
     for filename in os.listdir(folder_path):
         if filename.endswith('.json'):
             related_variable = extract_related_variable(filename)
+            print(related_variable)
             json_file_path = os.path.join(folder_path, filename)
             with open(json_file_path, 'r') as file:
                 data = json.load(file)
@@ -31,8 +32,8 @@ def process_json_folder(folder_path, dataset_name, year):
     return entities_data
 
 # Process NIBRS_jsonblock folder
-nibrs_folder_path = 'jsons'
-nibrs_entities_data = process_json_folder(nibrs_folder_path, 'NIBRS', 2019)
+nibrs_folder_path = 'fixed_jsons'
+nibrs_entities_data = process_json_folder(nibrs_folder_path, "NSDUH", 2022)
 
 # Create a DataFrame from the entities data
 entities_df = pd.DataFrame(nibrs_entities_data)
